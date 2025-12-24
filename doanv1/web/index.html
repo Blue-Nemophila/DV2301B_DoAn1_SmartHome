@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Smart Home Dashboard</title>
+  <style>
+    body { 
+      background: #0d1117; 
+      color: #fff; 
+      font-family: Arial; 
+      text-align: center;
+      padding-top: 50px;
+    }
+    .btn {
+      padding: 15px 25px;
+      margin: 10px;
+      font-size: 20px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+    }
+    .on { background: #00c853; }
+    .off { background: #d50000; }
+    .card {
+      background: #161b22;
+      padding: 20px;
+      border-radius: 15px;
+      width: 300px;
+      margin: auto;
+    }
+  </style>
+</head>
+
+32wew34eeccvc
+<body>
+
+<h1>Smart Home Dashboard</h1>
+
+<div class="card">
+  <h2>LED Status: <span id="status">...</span></h2>
+  <button class="btn on" onclick="turnOn()">Bật LED</button>
+  <button class="btn off" onclick="turnOff()">Tắt LED</button>
+</div>
+
+<script>
+  const espIP = "http://192.168.137.99"; 
+
+  function updateStatus() {
+    fetch(espIP + "/status")
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("status").innerText = 
+          data.led === 1 ? "Đang BẬT" : "Đang TẮT";
+      });
+  }
+
+  function turnOn() {
+    fetch(espIP + "/on").then(updateStatus);
+  }
+
+  function turnOff() {
+    fetch(espIP + "/off").then(updateStatus);
+  }
+
+  setInterval(updateStatus, 1000);
+</script>
+
+</body>
+</html>

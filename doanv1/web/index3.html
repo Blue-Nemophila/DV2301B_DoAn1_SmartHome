@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏠 Smart Home Dashboard - ESP32 Control Center</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #3a86ff;
+            --secondary: #8338ec;
+            --success: #06d6a0;
+            --danger: #ff006e;
+            --warning: #ffbe0b;
+            --dark: #0d1b2a;
+            --darker: #0a1420;
+            --card: #1b263b;
+            --text: #e0e1dd;
+            --text-light: #778da9;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--dark) 0%, var(--darker) 100%);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--success), var(--warning));
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        /* System Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: var(--card);
+            padding: 25px;
+            border-radius: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-8px);
+            border-color: var(--primary);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .stat-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: var(--primary);
+        }
+
+        .stat-value {
+            font-size: 2.8rem;
+            font-weight: 800;
+            margin: 10px 0;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .stat-label {
+            color: var(--text-light);
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+
+        .quick-btn {
+            padding: 16px 32px;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 200px;
+            justify-content: center;
+        }
+
+        .quick-btn.all-on {
+            background: linear-gradient(135deg, var(--success), #059669);
+            color: white;
+        }
+
+        .quick-btn.all-off {
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+            color: white;
+        }
+
+        .quick-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Devices Grid */
+        .devices-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+
+        .device-card {
+            background: linear-gradient(145deg, var(--card), #16213e);
+            border-radius: 25px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            transition: all 0.4s ease;
+            border: 2px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .device-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+        }
+
+        .device-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            border-color: var(--primary);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        .device-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .device-icon-wrapper {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 20px;
+            font-size: 32px;
+            box-shadow: 0 10px 25px rgba(58, 134, 255, 0.3);
+        }
+
+        .device-info h3 {
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .device-subtitle {
+            color: var(--text-light);
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Status Display */
+        .status-display {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 25px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .status-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .status-dot {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            position: relative;
+        }
+
+        .status-dot.on {
+            background: var(--success);
+            box-shadow: 0 0 25px rgba(6, 214, 160, 0.7);
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.off {
+            background: var(--danger);
+            box-shadow: 0 0 15px rgba(255, 0, 110, 0.5);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        .status-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .device-stats {
+            text-align: right;
+        }
+
+        .power-badge {
+            background: linear-gradient(135deg, var(--warning), #f59e0b);
+            color: var(--dark);
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            display: inline-block;
+        }
+
+        .last-updated {
+            color: var(--text-light);
+            font-size: 0.9rem;
+            margin-top: 8px;
+        }
+
+        /* Control Buttons */
+        .control-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .control-btn {
+            padding: 18px 10px;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .control-btn.on {
+            background: linear-gradient(135deg, var(--success), #059669);
+            color: white;
+        }
+
+        .control-btn.off {
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+            color: white;
+        }
+
+        .control-btn.toggle {
+            background: linear-gradient(135deg, var(--primary), #2563eb);
+            color: white;
+        }
+
+        .control-btn:hover:not(:disabled) {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .control-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        /* Connection Status */
+        .connection-status {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(15px);
+            padding: 18px 25px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .connection-status:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
+        }
+
+        .connection-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            position: relative;
+        }
+
+        .connection-dot.connected {
+            background: var(--success);
+            box-shadow: 0 0 20px rgba(6, 214, 160, 0.8);
+            animation: pulse 2s infinite;
+        }
+
+        .connection-dot.disconnected {
+            background: var(--danger);
+            box-shadow: 0 0 15px rgba(255, 0, 110, 0.6);
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            top: 25px;
+            right: 25px;
+            padding: 20px 30px;
+            background: linear-gradient(135deg, var(--success), #059669);
+            color: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            transform: translateX(150%);
+            transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            z-index: 1001;
+            max-width: 400px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.error {
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+        }
+
+        /* Loading Animation */
+        .loading-spinner {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            margin-top: 60px;
+            padding-top: 25px;
+            border-top: 2px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-light);
+        }
+
+        .footer-info {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header h1 { font-size: 2.2rem; }
+            .devices-grid { grid-template-columns: 1fr; }
+            .control-buttons { grid-template-columns: 1fr; }
+            .quick-actions { flex-direction: column; }
+            .connection-status { bottom: 15px; right: 15px; left: 15px; }
+            .device-icon-wrapper { width: 60px; height: 60px; font-size: 24px; }
+        }
+
+        /* Theme Switch */
+        .theme-switch {
+            position: fixed;
+            top: 25px;
+            right: 25px;
+            background: var(--card);
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .theme-switch:hover {
+            transform: rotate(30deg);
+            background: var(--primary);
+        }
+
+        /* Device Names */
+        .device-names {
+            background: var(--card);
+            padding: 20px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .name-badge {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="theme-switch" onclick="toggleTheme()">
+        <i class="fas fa-moon" id="theme-icon"></i>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>
+                <i class="fas fa-home"></i>
+                Smart Home Control Center
+            </h1>
+            <p>Điều khiển và giám sát 5 thiết bị IoT trong thời gian thực</p>
+        </header>
+
+        <!-- Device Names -->
+        <div class="device-names">
+            <div class="name-badge">
+                <i class="fas fa-lightbulb"></i>
+                Đèn LED Phòng Khách
+            </div>
+            <div class="name-badge">
+                <i class="fas fa-bed"></i>
+                Đèn LED Phòng Ngủ
+            </div>
+            <div class="name-badge">
+                <i class="fas fa-fan"></i>
+                Quạt Máy
+            </div>
+            <div class="name-badge">
+                <i class="fas fa-tint"></i>
+                Máy Bơm Nước
+            </div>
+            <div class="name-badge">
+                <i class="fas fa-walking"></i>
+                Đèn Hành Lang
+            </div>
+        </div>
+
+        <!-- System Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">⚡</div>
+                <div class="stat-value" id="totalPower">0W</div>
+                <div class="stat-label">Tổng công suất tiêu thụ</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⏱️</div>
+                <div class="stat-value" id="uptime">0h 0m</div>
+                <div class="stat-label">Thời gian hoạt động</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-value" id="activeDevices">0/5</div>
+                <div class="stat-label">Thiết bị đang hoạt động</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📶</div>
+                <div class="stat-value" id="connectionQuality">100%</div>
+                <div class="stat-label">Chất lượng kết nối</div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <button class="quick-btn all-on" onclick="controlAll('on')">
+                <i class="fas fa-bolt"></i>
+                BẬT TẤT CẢ
+            </button>
+            <button class="quick-btn all-off" onclick="controlAll('off')">
+                <i class="fas fa-power-off"></i>
+                TẮT TẤT CẢ
+            </button>
+        </div>
+
+        <!-- Devices Grid -->
+        <div class="devices-grid" id="devicesContainer">
+            <!-- Devices will be dynamically generated -->
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Smart Home Dashboard v3.0 | ESP32 Control System</p>
+            <div class="footer-info">
+                <span><i class="fas fa-microchip"></i> ESP32</span>
+                <span><i class="fas fa-wifi"></i> WiFi + ESP-NOW</span>
+                <span><i class="fas fa-clock"></i> Auto-refresh: 2s</span>
+                <span><i class="fas fa-map-marker-alt"></i> <span id="espAddress">192.168.137.99</span></span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toast-message">Thao tác thành công!</span>
+    </div>
+
+    <!-- Connection Status -->
+    <div class="connection-status" id="connectionStatus">
+        <div class="connection-dot connected" id="connectionDot"></div>
+        <span id="connectionText">Đang kết nối với ESP32...</span>
+    </div>
+
+    <script>
+        const ESP_IP = "http://192.168.137.99";
+        let devicesData = [];
+        let lastUpdateTime = new Date();
+        let isConnected = true;
+        let theme = 'dark';
+
+        // Device information with power consumption
+        const deviceInfo = [
+            { name: "Đèn Phòng Khách", icon: "lightbulb", power: 15, gpio: 23 },
+            { name: "Đèn Phòng Ngủ", icon: "bed", power: 10, gpio: 22 },
+            { name: "Quạt Máy", icon: "fan", power: 50, gpio: 21 },
+            { name: "Máy Bơm", icon: "tint", power: 200, gpio: 19 },
+            { name: "Đèn Hành Lang", icon: "walking", power: 8, gpio: 18 }
+        ];
+
+        // Toast notification
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastIcon = toast.querySelector('i');
+            const toastMessage = document.getElementById('toast-message');
+            
+            toastMessage.textContent = message;
+            toast.className = `toast ${type}`;
+            
+            if (type === 'error') {
+                toastIcon.className = 'fas fa-exclamation-circle';
+            } else {
+                toastIcon.className = 'fas fa-check-circle';
+            }
+            
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Update connection status
+        function updateConnectionStatus(connected) {
+            isConnected = connected;
+            const dot = document.getElementById('connectionDot');
+            const text = document.getElementById('connectionText');
+            
+            if (connected) {
+                dot.className = 'connection-dot connected';
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('vi-VN', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+                text.textContent = `Đã kết nối ${timeStr}`;
+            } else {
+                dot.className = 'connection-dot disconnected';
+                text.textContent = 'Mất kết nối - Đang thử lại...';
+            }
+        }
+
+        // Format time
+        function formatTime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            return `${hours}h ${minutes}m`;
+        }
+
+        // Calculate total power
+        function calculateTotalPower(states) {
+            let total = 0;
+            states.forEach((state, index) => {
+                if (state === 1) {
+                    total += deviceInfo[index].power;
+                }
+            });
+            return total;
+        }
+
+        // Count active devices
+        function countActiveDevices(states) {
+            return states.filter(state => state === 1).length;
+        }
+
+        // Create device card
+        function createDeviceCard(index, state) {
+            const info = deviceInfo[index];
+            const isOn = state === 1;
+            const lastUpdate = new Date().toLocaleTimeString('vi-VN', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            
+            return `
+                <div class="device-card" id="device${index}">
+                    <div class="device-header">
+                        <div class="device-icon-wrapper">
+                            <i class="fas fa-${info.icon}"></i>
+                        </div>
+                        <div class="device-info">
+                            <h3>${info.name}</h3>
+                            <div class="device-subtitle">
+                                <span>GPIO ${info.gpio}</span>
+                                <span>•</span>
+                                <span>${info.power}W</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="status-display">
+                        <div class="status-left">
+                            <div class="status-indicator">
+                                <div class="status-dot ${isOn ? 'on' : 'off'}"></div>
+                                <div class="status-text" id="statusText${index}">
+                                    ${isOn ? 'ĐANG HOẠT ĐỘNG' : 'ĐÃ TẮT'}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="device-stats">
+                            <div class="power-badge">${info.power}W</div>
+                            <div class="last-updated">Cập nhật: ${lastUpdate}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="control-buttons">
+                        <button class="control-btn on" onclick="turnOn(${index})" 
+                                id="btnOn${index}" ${isOn ? 'disabled' : ''}>
+                            <i class="fas fa-power-off"></i>
+                            Bật
+                        </button>
+                        <button class="control-btn toggle" onclick="toggleDevice(${index})">
+                            <i class="fas fa-sync-alt"></i>
+                            Đảo
+                        </button>
+                        <button class="control-btn off" onclick="turnOff(${index})" 
+                                id="btnOff${index}" ${!isOn ? 'disabled' : ''}>
+                            <i class="fas fa-power-off"></i>
+                            Tắt
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Update UI with device states
+        function updateDevicesUI(states) {
+            const container = document.getElementById('devicesContainer');
+            container.innerHTML = '';
+            
+            states.forEach((state, index) => {
+                container.innerHTML += createDeviceCard(index, state);
+            });
+            
+            // Update statistics
+            const totalPower = calculateTotalPower(states);
+            const activeDevices = countActiveDevices(states);
+            
+            document.getElementById('totalPower').textContent = `${totalPower}W`;
+            document.getElementById('activeDevices').textContent = `${activeDevices}/5`;
+            
+            // Update connection quality based on response time
+            document.getElementById('connectionQuality').textContent = '100%';
+            
+            lastUpdateTime = new Date();
+            updateConnectionStatus(true);
+        }
+
+        // Control functions
+        async function turnOn(deviceId) {
+            const btn = document.getElementById(`btnOn${deviceId}`);
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<div class="loading-spinner"></div>';
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch(`${ESP_IP}/on?dev=${deviceId}`);
+                if (!response.ok) throw new Error('Network error');
+                
+                const data = await response.json();
+                showToast(`${deviceInfo[deviceId].name} đã bật`);
+                updateStates();
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Lỗi khi bật thiết bị', 'error');
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+                updateConnectionStatus(false);
+            }
+        }
+
+        async function turnOff(deviceId) {
+            const btn = document.getElementById(`btnOff${deviceId}`);
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<div class="loading-spinner"></div>';
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch(`${ESP_IP}/off?dev=${deviceId}`);
+                if (!response.ok) throw new Error('Network error');
+                
+                const data = await response.json();
+                showToast(`${deviceInfo[deviceId].name} đã tắt`);
+                updateStates();
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Lỗi khi tắt thiết bị', 'error');
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+                updateConnectionStatus(false);
+            }
+        }
+
+        async function toggleDevice(deviceId) {
+            const currentState = devicesData[deviceId];
+            try {
+                // First get current state, then toggle
+                if (currentState === 1) {
+                    await turnOff(deviceId);
+                } else {
+                    await turnOn(deviceId);
+                }
+            } catch (error) {
+                console.error('Error toggling device:', error);
+                showToast('Lỗi khi đảo trạng thái', 'error');
+            }
+        }
+
+        async function controlAll(action) {
+            showToast(`Đang ${action === 'on' ? 'bật' : 'tắt'} tất cả thiết bị...`);
+            
+            const promises = [];
+            for (let i = 0; i < 5; i++) {
+                promises.push(fetch(`${ESP_IP}/${action}?dev=${i}`));
+            }
+            
+            try {
+                await Promise.all(promises);
+                showToast(`Đã ${action === 'on' ? 'bật' : 'tắt'} tất cả thiết bị`);
+                updateStates();
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Lỗi khi điều khiển tất cả', 'error');
+                updateConnectionStatus(false);
+            }
+        }
+
+        // Get device states
+        async function updateStates() {
+            try {
+                const response = await fetch(`${ESP_IP}/status`);
+                if (!response.ok) throw new Error('Network error');
+                
+                const data = await response.json();
+                devicesData = data.device;
+                updateDevicesUI(devicesData);
+                
+                // Update uptime counter
+                const uptimeElement = document.getElementById('uptime');
+                const now = new Date();
+                const hours = now.getHours().toString().padStart(2, '0');
+                const minutes = now.getMinutes().toString().padStart(2, '0');
+                uptimeElement.textContent = `${hours}:${minutes}`;
+                
+            } catch (error) {
+                console.error('Error updating states:', error);
+                updateConnectionStatus(false);
+            }
+        }
+
+        // Toggle theme
+        function toggleTheme() {
+            const icon = document.getElementById('theme-icon');
+            const root = document.documentElement;
+            
+            if (theme === 'dark') {
+                theme = 'light';
+                root.style.setProperty('--dark', '#f1f5f9');
+                root.style.setProperty('--darker', '#e2e8f0');
+                root.style.setProperty('--card', '#ffffff');
+                root.style.setProperty('--text', '#1e293b');
+                root.style.setProperty('--text-light', '#64748b');
+                icon.className = 'fas fa-sun';
+            } else {
+                theme = 'dark';
+                root.style.setProperty('--dark', '#0d1b2a');
+                root.style.setProperty('--darker', '#0a1420');
+                root.style.setProperty('--card', '#1b263b');
+                root.style.setProperty('--text', '#e0e1dd');
+                root.style.setProperty('--text-light', '#778da9');
+                icon.className = 'fas fa-moon';
+            }
+        }
+
+        // Initialize
+        function init() {
+            document.getElementById('espAddress').textContent = ESP_IP.replace('http://', '');
+            updateStates();
+            
+            // Auto-refresh every 2 seconds
+            setInterval(updateStates, 2000);
+            
+            // Update uptime every minute
+            setInterval(() => {
+                const uptimeElement = document.getElementById('uptime');
+                const now = new Date();
+                const hours = now.getHours().toString().padStart(2, '0');
+                const minutes = now.getMinutes().toString().padStart(2, '0');
+                uptimeElement.textContent = `${hours}:${minutes}`;
+            }, 60000);
+        }
+
+        // Start when page loads
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
